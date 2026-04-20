@@ -34,11 +34,12 @@ function Login() {
         body:JSON.stringify(loginInfo)
       })
       const result= await response.json();
-      const {success,message,jwtToken,name,error}=result;
+      const {success,message,jwtToken,name,role,error}=result;
       if(success){
         handleSuccess(message);
         localStorage.setItem('token',jwtToken);
         localStorage.setItem('loggedInUser',name);
+        localStorage.setItem('role',role);
         setTimeout(()=>{
           navigate('/dashboard')
         },1000)

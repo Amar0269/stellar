@@ -5,10 +5,23 @@ import {ToastContainer} from 'react-toastify';
 import { handleError, handleSuccess } from "../../util";
 
 function Signup() {
+  const ROLES = [
+    { value: 'student',             label: 'Student' },
+    { value: 'classRepresentative', label: 'Class Representative' },
+    { value: 'supervisor',          label: 'Supervisor' },
+    { value: 'warden',              label: 'Warden' },
+    { value: 'chiefWarden',         label: 'Chief Warden' },
+    { value: 'teacher',             label: 'Teacher' },
+    { value: 'labAssistant',        label: 'Lab Assistant' },
+    { value: 'director',            label: 'Director' },
+    { value: 'technician',          label: 'Technician' },
+  ];
+
   const [signupInfo,setSignupInfo]=useState({
     name:'',
     email:'',
-    password:''
+    password:'',
+    role:'student'
   })
   const navigate=useNavigate();
   const handleChange=async(e)=>{
@@ -102,7 +115,21 @@ function Signup() {
             />
           </div>
 
-        
+          {/* Role */}
+          <div>
+            <label className="text-gray-600">Role</label>
+            <select
+              name="role"
+              value={signupInfo.role}
+              onChange={handleChange}
+              className="w-full mt-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+            >
+              {ROLES.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+
 
           {/* Button */}
           <button

@@ -1,74 +1,81 @@
 const UserModel = require("../Models/Users");
 const bcrypt = require('bcrypt');
-const jwt=require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 
-const signup=async(req,res)=>{
-    try{
-        const{name,email,password}=req.body;
-        const user=await UserModel.findOne({email});
-        if(user){
+const signup = async (req, res) => {
+    try {
+        const { name, email, password, role } = req.body;
+        const user = await UserModel.findOne({ email });
+        if (user) {
             return res.status(409)
-                .json({message:"User already exists, you can login",success:false});
-
+                .json({ message: "User already exists, you can login", success: false });
         }
-        const userModel=new UserModel({name,email,password});
-        userModel.password=await bcrypt.hash(password,10);
+
+        // Students are auto-approved; all other roles need admin approval
+        const resolvedRole = role || 'student';
+        const isApproved = resolvedRole === 'student';
+
+        const userModel = new UserModel({ name, email, password, role: resolvedRole, isApproved });
+        userModel.password = await bcrypt.hash(password, 10);
         await userModel.save();
-        res.status(201)
-            .json({message:"Signup successfully",
-                success:true
-            })
+
+        const message = isApproved
+            ? "Signup successful! You can now log in."
+            : "Signup successful! Your account is pending admin approval.";
+
+        res.status(201).json({ message, success: true, pendingApproval: !isApproved });
+    } catch (err) {
+        console.log("ERROR:", err);
+        res.status(500).json({
+            message: "Internal Server error",
+            success: false,
+        });
     }
-    catch(err){
-    console.log("ERROR:", err); // 🔥 ADD THIS
-    res.status(500).json({
-        message:"Internal Server error",
-        success:false
-    })
-}
-}
+};
 
 
-const login=async(req,res)=>{
-    try{
-        const{name,email,password}=req.body;
-        const user=await UserModel.findOne({email});
-        const errorMsg='Auth failed email or password is wrong';
-        if(!user){
-            return res.status(403)
-                .json({message:errorMsg,success:false});
-
+const login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await UserModel.findOne({ email });
+        const errorMsg = 'Auth failed: email or password is wrong';
+        if (!user) {
+            return res.status(403).json({ message: errorMsg, success: false });
         }
-        const isPassEqual=await bcrypt.compare(password,user.password);
-        if(!isPassEqual){
-            return res.status(403)
-                .json({message:errorMsg,success:false});
-        } 
-        const jwtToken=jwt.sign(
-            {email:user.email,_id:user._id},
+        const isPassEqual = await bcrypt.compare(password, user.password);
+        if (!isPassEqual) {
+            return res.status(403).json({ message: errorMsg, success: false });
+        }
+
+        // Block unapproved users (except auto-approved students and admin)
+        if (!user.isApproved) {
+            return res.status(403).json({
+                message: "Your account is pending admin approval. Please wait.",
+                success: false,
+                pendingApproval: true,
+            });
+        }
+
+        const jwtToken = jwt.sign(
+            { email: user.email, _id: user._id, role: user.role, name: user.name },
             process.env.JWT_SECRET,
-            {expiresIn:'24h'}
-
-        )
-        res.status(200)
-            .json({message:"Login successfully",
-                success:true,
-                jwtToken,
-                email,
-                name:user.name
-            })
+            { expiresIn: '24h' }
+        );
+        res.status(200).json({
+            message: "Login successfully",
+            success: true,
+            jwtToken,
+            email,
+            name: user.name,
+            role: user.role,
+        });
+    } catch (err) {
+        res.status(500).json({
+            message: "Internal Server error",
+            success: false,
+        });
     }
-    catch(err){
-        res.status(500)
-            .json({
-                message:"Internal Server error",
-                success:false
-            })
-    }
-}
+};
 
 
-module.exports={
-    signup,
-    login
-} 
+module.exports = { signup, login };
