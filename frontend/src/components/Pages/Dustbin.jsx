@@ -1,9 +1,10 @@
 import React from 'react';
-import useSensorData from '../../hooks/useSensorData';
+import { dbDustbin } from '../../firebaseDustbin';
+import useRoomsData from '../../hooks/useRoomsData';
 import RoomGrid from '../Dashboard/RoomGrid';
 
 function Dustbin() {
-  const { rooms, error } = useSensorData('dustbin');
+  const { rooms, error } = useRoomsData(dbDustbin);
 
   return (
     <div className="max-w-4xl">
@@ -13,7 +14,7 @@ function Dustbin() {
           Live bin fill level per room — updates automatically.
         </p>
       </div>
-      <RoomGrid rooms={rooms} error={error} unit="%" />
+      <RoomGrid rooms={rooms} sensor="dustbin" unit="%" error={error} />
     </div>
   );
 }

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
-import {ToastContainer} from 'react-toastify';
+import { Link, useNavigate } from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
 import { handleError, handleSuccess } from "../../util";
+import { signupUser } from "../../services/auth";
 
 function Signup() {
   const ROLES = [
@@ -17,65 +17,47 @@ function Signup() {
     { value: 'technician',          label: 'Technician' },
   ];
 
-  const [signupInfo,setSignupInfo]=useState({
-    name:'',
-    email:'',
-    password:'',
-    role:'student'
-  })
-  const navigate=useNavigate();
-  const handleChange=async(e)=>{
-      const{name,value}=e.target;
-      console.log(name,value);
-      const copySignupInfo={...signupInfo};
-      copySignupInfo[name]=value;
-      setSignupInfo(copySignupInfo);
-  }
+  const [signupInfo, setSignupInfo] = useState({
+    name: '', email: '', password: '', role: 'student',
+  });
+  const navigate = useNavigate();
 
-  const handleSignup=async(e)=>{
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setSignupInfo(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSignup = async (e) => {
     e.preventDefault();
-    const {name,email,password}=signupInfo;
-    if(!name||!email||!password){
-      return handleError('name email and password are required...');
+    const { name, email, password } = signupInfo;
+    if (!name || !email || !password) {
+      return handleError('Name, email and password are required.');
     }
-    try{
-      const url="http://localhost:8080/auth/signup";
-      const response=await fetch(url,{
-        method:"POST",
-        headers:{
-          'Content-Type':'application/json'
-        },
-        body:JSON.stringify(signupInfo)
-      })
-      const result= await response.json();
-      const {success,message,error}=result;
-      if(success){
+    try {
+      const result = await signupUser(signupInfo);
+      const { success, message, error } = result;
+      if (success) {
         handleSuccess(message);
-        setTimeout(()=>{
-          navigate('/login')
-        },1000)
-      }else if(error){
-        const details=error?.details[0].message;
-        handleError(details);
-      }else if(!success){
+        setTimeout(() => navigate('/login'), 1000);
+      } else if (error) {
+        const details = error?.details?.[0]?.message;
+        handleError(details || message);
+      } else {
         handleError(message);
       }
-    }catch(err){
-      handleError(err);
+    } catch (err) {
+      handleError('An unexpected error occurred.');
     }
-  }
-   
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-
       <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-
         <h2 className="text-2xl font-bold text-center text-gray-800">
           Create an Account
         </h2>
 
         <form onSubmit={handleSignup} className="mt-6 space-y-4">
-
           {/* Name */}
           <div>
             <label className="text-gray-600">Full Name</label>
@@ -130,7 +112,6 @@ function Signup() {
             </select>
           </div>
 
-
           {/* Button */}
           <button
             type="submit"
@@ -139,14 +120,10 @@ function Signup() {
             Sign Up
           </button>
           <span>Already have an account?
-               <Link to='/login' className="text-orange-600 ml-1">
-                  Login
-               </Link>
+            <Link to='/login' className="text-orange-600 ml-1">Login</Link>
           </span>
-
         </form>
-        <ToastContainer/>
-        
+        <ToastContainer />
       </div>
     </div>
   );

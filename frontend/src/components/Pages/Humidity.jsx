@@ -1,9 +1,10 @@
 import React from 'react';
-import useSensorData from '../../hooks/useSensorData';
+import { dbMain } from '../../firebaseMain';
+import useRoomsData from '../../hooks/useRoomsData';
 import RoomGrid from '../Dashboard/RoomGrid';
 
 function Humidity() {
-  const { rooms, error } = useSensorData('humidity');
+  const { rooms, error } = useRoomsData(dbMain);
 
   return (
     <div className="max-w-4xl">
@@ -13,7 +14,7 @@ function Humidity() {
           Live relative humidity per room — updates automatically.
         </p>
       </div>
-      <RoomGrid rooms={rooms} error={error} unit="%" />
+      <RoomGrid rooms={rooms} sensor="humidity" unit="%" error={error} />
     </div>
   );
 }

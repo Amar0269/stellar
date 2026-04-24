@@ -1,8 +1,8 @@
 const UserModel = require('../Models/Users');
 const bcrypt = require('bcrypt');
 
-const ADMIN_EMAIL = 'amar2006@gmail.com';
-const ADMIN_PASSWORD = 'Amar@2006';
+const ADMIN_EMAIL    = process.env.ADMIN_EMAIL    || 'amar2006@gmail.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Amar@2006';
 
 /**
  * Idempotent admin seed — runs on every server boot.

@@ -1,9 +1,10 @@
 import React from 'react';
-import useSensorData from '../../hooks/useSensorData';
+import { dbMain } from '../../firebaseMain';
+import useRoomsData from '../../hooks/useRoomsData';
 import RoomGrid from '../Dashboard/RoomGrid';
 
 function Temperature() {
-  const { rooms, error } = useSensorData('temperature');
+  const { rooms, error } = useRoomsData(dbMain);
 
   return (
     <div className="max-w-4xl">
@@ -13,7 +14,7 @@ function Temperature() {
           Live ambient temperature per room — updates automatically.
         </p>
       </div>
-      <RoomGrid rooms={rooms} error={error} unit="°C" />
+      <RoomGrid rooms={rooms} sensor="temperature" unit="°C" error={error} />
     </div>
   );
 }

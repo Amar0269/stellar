@@ -1,9 +1,10 @@
 import React from 'react';
-import useSensorData from '../../hooks/useSensorData';
+import { dbMain } from '../../firebaseMain';
+import useRoomsData from '../../hooks/useRoomsData';
 import RoomGrid from '../Dashboard/RoomGrid';
 
 function Gas() {
-  const { rooms, error } = useSensorData('gas');
+  const { rooms, error } = useRoomsData(dbMain);
 
   return (
     <div className="max-w-4xl">
@@ -13,7 +14,7 @@ function Gas() {
           Live gas concentration per room — updates automatically.
         </p>
       </div>
-      <RoomGrid rooms={rooms} error={error} unit="ppm" />
+      <RoomGrid rooms={rooms} sensor="gas" unit="ppm" error={error} />
     </div>
   );
 }

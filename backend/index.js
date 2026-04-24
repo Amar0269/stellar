@@ -1,5 +1,7 @@
 require('dotenv').config(); // ✅ Must be first — loads env vars before any module reads them
 
+const { startCleanupWorkers } = require('./Controllers/ComplaintController');
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -34,6 +36,7 @@ const mongoose = require('mongoose');
 const { seedAdmin } = require('./Controllers/AdminController');
 mongoose.connection.once('open', () => {
     seedAdmin();
+    startCleanupWorkers(); // ← complaint timing cleanup (reject window + auto-delete)
 });
 
 app.listen(PORT, () => {

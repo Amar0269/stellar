@@ -1,64 +1,47 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
-import {ToastContainer} from 'react-toastify';
+import { Link, useNavigate } from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
 import { handleError, handleSuccess } from "../../util";
+import { loginUser } from "../../services/auth";
 
 function Login() {
-  const [loginInfo,setLoginInfo]=useState({
-    email:'',
-    password:''
-  })
-  const navigate=useNavigate();
-  const handleChange=async(e)=>{
-      const{name,value}=e.target;
-      console.log(name,value);
-      const copyLoginInfo={...loginInfo};
-      copyLoginInfo[name]=value;
-      setLoginInfo(copyLoginInfo);
-  }
+  const [loginInfo, setLoginInfo] = useState({ email: '', password: '' });
+  const navigate = useNavigate();
 
-  const handleLogin=async(e)=>{
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setLoginInfo(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const {email,password}=loginInfo;
-    if(!email||!password){
-      return handleError('email and password are required...');
+    const { email, password } = loginInfo;
+    if (!email || !password) {
+      return handleError('Email and password are required.');
     }
-    try{
-      const url="http://localhost:8080/auth/login";
-      const response=await fetch(url,{
-        method:"POST",
-        headers:{
-          'Content-Type':'application/json'
-        },
-        body:JSON.stringify(loginInfo)
-      })
-      const result= await response.json();
-      const {success,message,jwtToken,name,role,error}=result;
-      if(success){
+    try {
+      const result = await loginUser(loginInfo);
+      const { success, message, jwtToken, name, role, error } = result;
+      if (success) {
         handleSuccess(message);
-        localStorage.setItem('token',jwtToken);
-        localStorage.setItem('loggedInUser',name);
-        localStorage.setItem('role',role);
-        setTimeout(()=>{
-          navigate('/dashboard')
-        },1000)
-      }else if(error){
-        const details=error?.details[0].message;
-        handleError(details);
-      }else if(!success){
+        localStorage.setItem('token', jwtToken);
+        localStorage.setItem('loggedInUser', name);
+        localStorage.setItem('role', role);
+        setTimeout(() => navigate('/dashboard'), 1000);
+      } else if (error) {
+        const details = error?.details?.[0]?.message;
+        handleError(details || message);
+      } else {
         handleError(message);
       }
-    }catch(err){
-      handleError(err);
+    } catch (err) {
+      handleError('An unexpected error occurred.');
     }
-  }
-   
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-
       <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-
         <h2 className="text-2xl font-bold text-center text-gray-800">
           Login to your account
         </h2>
@@ -90,8 +73,6 @@ function Login() {
             />
           </div>
 
-        
-
           {/* Button */}
           <button
             type="submit"
@@ -100,15 +81,10 @@ function Login() {
             Login
           </button>
           <span>Don't have an account?
-               <Link to='/signup' className="text-orange-600 ml-1">
-                  Signup
-               </Link>
+            <Link to='/signup' className="text-orange-600 ml-1">Signup</Link>
           </span>
-
         </form>
-        <ToastContainer/>
-       
-
+        <ToastContainer />
       </div>
     </div>
   );

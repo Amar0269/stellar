@@ -15,5 +15,6 @@ export const api = async (endpoint, method = "GET", data = null, token = null) =
     return result;
   } catch (err) {
     console.error("API Error:", err);
+    return { success: false, message: "Network error. Please try again." };
   }
 };

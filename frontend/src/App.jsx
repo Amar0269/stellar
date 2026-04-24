@@ -1,21 +1,7 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
-import Header from './components/Header/Header'
-import Footer from './components/Footer/footer'
-import Home from './components/Home/Home'
-
+// App.jsx is not mounted — main.jsx renders <RouterProvider> directly.
+// Kept as a stub to avoid import errors from any legacy references.
 function App() {
-  const [count, setCount] = useState(0)
-
-
-  return (
-    <>
-    
-    </>
-  )
+  return null;
 }
 
-export default App
+export default App;

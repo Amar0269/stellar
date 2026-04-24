@@ -12,7 +12,9 @@ const ensureAuthenticated = (req, res, next) => {
             .json({ message: 'Unauthorized, JWT token is required' });
     }
     try {
-        const decoded = jwt.verify(auth, process.env.JWT_SECRET);
+        // Accept both "Bearer <token>" and raw token formats
+        const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
         next();
     } catch (err) {

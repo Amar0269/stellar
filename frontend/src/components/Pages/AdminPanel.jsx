@@ -13,7 +13,7 @@ function UserRow({ user, onApprove, onReject }) {
       const endpoint = action === 'approve' ? 'approve' : 'reject';
       const res = await fetch(`${API}/api/admin/${endpoint}/${user._id}`, {
         method: 'PATCH',
-        headers: { Authorization: token },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (data.success) {
@@ -66,14 +66,15 @@ function AdminPanel() {
   useEffect(() => {
     if (role !== 'admin') return;
     fetchPending();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role]);
 
   const fetchPending = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API}/api/admin/users`, {
-        headers: { Authorization: token },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (data.success) setUsers(data.users);
