@@ -22,6 +22,11 @@ const ComplaintSchema = new mongoose.Schema({
         type: String,
         default: '',
     },
+    complaintType: {
+        type: String,
+        enum: ['Academic', 'Hostel', 'Other'],
+        required: true,
+    },
     subject: {
         type: String,
         required: true,
@@ -34,6 +39,10 @@ const ComplaintSchema = new mongoose.Schema({
         type: String,
         enum: ['pending', 'approved', 'in-progress', 'resolved', 'closed'],
         default: 'pending',
+    },
+    department: {
+        type: String,
+        default: '',
     },
     assignedToRole: {
         type: String,
