@@ -5,7 +5,7 @@ import { handleError, handleSuccess } from '../../util';
 
 const VIEW_ONLY_ROLES = new Set(['warden', 'chiefWarden', 'director', 'admin', 'supervisor']);
 
-const getActions = (userRole, complaint) => {
+const getActions = (userRole, complaint, currentUserId) => {
     if (VIEW_ONLY_ROLES.has(userRole)) return [];
 
     switch (userRole) {
@@ -34,10 +34,13 @@ const getActions = (userRole, complaint) => {
         case 'labAssistant':
         case 'classRepresentative':
             if (complaint.status === 'resolved') {
-                return [
-                    { label: '✓ Accept Resolution', status: 'verified', style: 'approve' },
-                    { label: '✗ Not Resolved',       status: 'reopened', style: 'reject'  },
-                ];
+                // ONLY the owner of the complaint can accept or reopen it
+                if (complaint.userId === currentUserId) {
+                    return [
+                        { label: '✓ Accept Resolution', status: 'verified', style: 'approve' },
+                        { label: '✗ Not Resolved',       status: 'reopened', style: 'reject'  },
+                    ];
+                }
             }
             return [];
 
@@ -84,7 +87,8 @@ const ACTION_STYLES = {
 
 function ComplaintCard({ complaint, userRole, onStatusChange }) {
     const [updating, setUpdating] = useState(false);
-    const actions   = getActions(userRole, complaint);
+    const currentUserId = localStorage.getItem('userId');
+    const actions   = getActions(userRole, complaint, currentUserId);
     const typeColor = COMPLAINT_TYPE_COLOR[complaint.complaintType] ?? COMPLAINT_TYPE_COLOR.Other;
 
     const handleAction = async (newStatus) => {

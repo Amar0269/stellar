@@ -43,7 +43,7 @@ const computeInitialVisibleRoles = (role, complaintType) => {
     } else {
         chain = ['supervisor', 'warden', 'chiefWarden'];
     }
-    const set = new Set([role, ...chain, 'admin']);
+    const set = new Set([...chain, 'admin']);
     return [...set];
 };
 
@@ -118,7 +118,13 @@ const getComplaints = async (req, res) => {
         if (role === 'admin') {
             baseQuery = {};
         } else {
-            baseQuery = { visibleToRoles: { $in: [role] } };
+            // Visible if you are the filer OR your role is in the visibility chain
+            baseQuery = { 
+                $or: [
+                    { userId: userId },
+                    { visibleToRoles: { $in: [role] } }
+                ]
+            };
         }
 
         const all = await ComplaintModel.find(baseQuery).sort({ createdAt: -1 });
@@ -209,23 +215,22 @@ const updateComplaintStatus = async (req, res) => {
             complaint.rejectionMessage   = 'Complaint marked invalid';
             complaint.decisionExpiresAt  = new Date(Date.now() + 60 * 1000); // 1 minute
             // Keep visible ONLY to teacher (and admin) during override window
-            complaint.visibleToRoles = [complaint.role, 'teacher', 'admin'].filter(
-                (r, i, arr) => arr.indexOf(r) === i
-            );
+            complaint.visibleToRoles = ['teacher', 'admin'];
             complaint.autoDeleteAt = null;
         }
 
         // TECHNICIAN: Mark resolved
-        else if (role === 'technician' && status === 'resolved') {
+            // Filer can see and verify it via userId filter in getComplaints
+            // No need to add filer's role to visibleToRoles
             complaint.status     = 'resolved';
             complaint.resolvedAt = new Date();
-            // Re-add the filer so they can see and verify it
-            const expandedResolved = new Set([...complaint.visibleToRoles, complaint.role]);
-            complaint.visibleToRoles = [...expandedResolved];
         }
 
         // STUDENT / labAssistant: Accept resolution → verified (closed)
         else if (['student', 'labAssistant', 'classRepresentative'].includes(role) && status === 'verified') {
+            if (complaint.userId.toString() !== actorId.toString()) {
+                return res.status(403).json({ message: 'Only the original filer can verify this complaint', success: false });
+            }
             if (complaint.status !== 'resolved') {
                 return res.status(400).json({ message: 'Complaint is not in resolved state', success: false });
             }
@@ -234,6 +239,9 @@ const updateComplaintStatus = async (req, res) => {
 
         // STUDENT / labAssistant: Reject resolution → reopen (send back to teacher)
         else if (['student', 'labAssistant', 'classRepresentative'].includes(role) && status === 'reopened') {
+            if (complaint.userId.toString() !== actorId.toString()) {
+                return res.status(403).json({ message: 'Only the original filer can reopen this complaint', success: false });
+            }
             if (complaint.status !== 'resolved') {
                 return res.status(400).json({ message: 'Complaint is not in resolved state', success: false });
             }
@@ -243,10 +251,8 @@ const updateComplaintStatus = async (req, res) => {
             complaint.autoDeleteAt       = null;
             complaint.rejectionMessage   = '';
             complaint.assignedToRole     = 'teacher';
-            // Reset visibility to filer + teacher
-            complaint.visibleToRoles = [complaint.role, 'teacher', 'admin'].filter(
-                (r, i, arr) => arr.indexOf(r) === i
-            );
+            // Reset visibility to teacher
+            complaint.visibleToRoles = ['teacher', 'admin'];
         }
 
         else {
@@ -284,7 +290,7 @@ const startCleanupWorkers = () => {
             });
 
             for (const c of expired) {
-                c.visibleToRoles    = [c.role, 'admin'];
+                c.visibleToRoles    = ['admin']; // Filer sees it via userId
                 c.decisionExpiresAt = null;
                 c.autoDeleteAt      = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
                 await c.save();

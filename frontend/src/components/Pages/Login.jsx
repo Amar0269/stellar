@@ -27,6 +27,9 @@ function Login() {
         localStorage.setItem('token', jwtToken);
         localStorage.setItem('loggedInUser', name);
         localStorage.setItem('role', role);
+        if (result.userId) {
+          localStorage.setItem('userId', result.userId);
+        }
         setTimeout(() => navigate('/dashboard'), 1000);
       } else if (error) {
         const details = error?.details?.[0]?.message;
