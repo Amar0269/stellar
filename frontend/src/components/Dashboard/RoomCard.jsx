@@ -1,16 +1,34 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 /**
  * RoomCard — one card per room, one sensor value shown.
  *
  * Props:
- *   roomId   – string  e.g. "204"
- *   value    – number | string | undefined  (the sensor reading)
- *   unit     – string  e.g. "°C", "ppm", "%"
+ *   roomId    – string  e.g. "204"
+ *   value     – number | string | undefined  (the sensor reading)
+ *   unit      – string  e.g. "°C", "%"
+ *   gasMode   – bool    if true, show gas-detection status instead of unit
  *   updatedAt – number | string | null  (Firebase timestamp or ISO string)
  */
-function RoomCard({ roomId, value, unit, updatedAt }) {
+function RoomCard({ roomId, value, unit, gasMode = false, updatedAt }) {
   const hasValue = value !== null && value !== undefined;
+
+  // Gas detection logic: threshold is 3000
+  const gasDetected = gasMode && hasValue && Number(value) > 3000;
+
+  // Fire a browser alert once when gas is first detected for this room.
+  // The ref prevents repeated alerts on every re-render.
+  const alertedRef = useRef(false);
+  useEffect(() => {
+    if (gasDetected && !alertedRef.current) {
+      alertedRef.current = true;
+      alert(`⚠️ Gas Detected in Room ${roomId}! Sensor value: ${value}`);
+    }
+    if (!gasDetected) {
+      // Reset so we can alert again if gas clears and comes back
+      alertedRef.current = false;
+    }
+  }, [gasDetected, roomId, value]);
 
   // ESP32 may send updatedAt as Unix seconds (10-digit) or milliseconds (13-digit).
   // JavaScript Date always expects milliseconds, so we normalise.
@@ -39,11 +57,23 @@ function RoomCard({ roomId, value, unit, updatedAt }) {
       <p className="text-sm font-semibold text-gray-700">{roomId}</p>
 
       {/* Sensor value */}
-      <div className="flex items-baseline gap-1">
+      <div className="flex items-baseline gap-2 flex-wrap">
         {hasValue ? (
           <>
             <span className="text-3xl font-bold text-gray-800">{value}</span>
-            <span className="text-sm text-gray-400">{unit}</span>
+            {gasMode ? (
+              <span
+                className={`text-sm font-semibold px-2 py-0.5 rounded-full ${
+                  gasDetected
+                    ? 'bg-red-100 text-red-600'
+                    : 'bg-green-100 text-green-600'
+                }`}
+              >
+                {gasDetected ? 'Gas Detected' : 'No Gas Detected'}
+              </span>
+            ) : (
+              <span className="text-sm text-gray-400">{unit}</span>
+            )}
           </>
         ) : (
           <span className="text-2xl font-semibold text-gray-300">—</span>

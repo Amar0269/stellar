@@ -14,7 +14,7 @@ function Gas() {
           Live gas concentration per room — updates automatically.
         </p>
       </div>
-      <RoomGrid rooms={rooms} sensor="gas" unit="ppm" error={error} />
+      <RoomGrid rooms={rooms} sensor="gas" gasMode error={error} />
     </div>
   );
 }

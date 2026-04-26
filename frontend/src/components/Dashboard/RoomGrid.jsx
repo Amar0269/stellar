@@ -5,13 +5,14 @@ import RoomCard from './RoomCard';
  * RoomGrid — renders one RoomCard per room entry.
  *
  * Props:
- *   rooms   – object keyed by roomId: { "204": { temperature, gas, … }, … }
- *             A new key in Firebase → a new RoomCard renders automatically.
- *   sensor  – string  which field to display  e.g. 'temperature'
- *   unit    – string  display unit            e.g. '°C'
- *   error   – string | null
+ *   rooms    – object keyed by roomId: { "204": { temperature, gas, … }, … }
+ *              A new key in Firebase → a new RoomCard renders automatically.
+ *   sensor   – string  which field to display  e.g. 'temperature'
+ *   unit     – string  display unit            e.g. '°C'
+ *   gasMode  – bool    if true, show gas-detection status instead of unit
+ *   error    – string | null
  */
-function RoomGrid({ rooms, sensor, unit, error }) {
+function RoomGrid({ rooms, sensor, unit, gasMode = false, error }) {
   if (error) {
     return <p className="text-sm text-red-400 mt-4">{error}</p>;
   }
@@ -37,6 +38,7 @@ function RoomGrid({ rooms, sensor, unit, error }) {
           roomId={roomId}
           value={data[sensor]}
           unit={unit}
+          gasMode={gasMode}
           updatedAt={data.updatedAt ?? null}
         />
       ))}
