@@ -3,38 +3,23 @@ import { handleError, handleSuccess } from '../../util';
 
 // ─── Role helpers ─────────────────────────────────────────────────────────────
 
-/**
- * Whether this role has any action buttons in the complaint workflow.
- * View-only roles: warden, chiefWarden, director, admin, supervisor.
- */
 const VIEW_ONLY_ROLES = new Set(['warden', 'chiefWarden', 'director', 'admin', 'supervisor']);
 
-/**
- * Returns the action buttons a given role may show on a complaint card.
- *   teacher      → approve / reject  (only on pending/reopened)
- *   technician   → resolve            (only on in-progress)
- *   student/la   → accept / reject    (only on resolved)
- *   others       → []
- */
 const getActions = (userRole, complaint) => {
     if (VIEW_ONLY_ROLES.has(userRole)) return [];
 
     switch (userRole) {
         case 'teacher':
-            // Only act on complaints still pending decision
             if (['pending', 'reopened'].includes(complaint.status)) {
                 return [
                     { label: '✓ Approve', status: 'in-progress', style: 'approve' },
                     { label: '✗ Reject',  status: 'rejected',    style: 'reject'  },
                 ];
             }
-            // During the 1-min override window the teacher can revoke a rejection
             if (complaint.status === 'rejected' && complaint.decisionExpiresAt) {
                 const expiresAt = new Date(complaint.decisionExpiresAt);
                 if (expiresAt > new Date()) {
-                    return [
-                        { label: '↩ Revoke Rejection', status: 'pending', style: 'revoke' },
-                    ];
+                    return [{ label: '↩ Revoke Rejection', status: 'pending', style: 'revoke' }];
                 }
             }
             return [];
@@ -48,7 +33,6 @@ const getActions = (userRole, complaint) => {
         case 'student':
         case 'labAssistant':
         case 'classRepresentative':
-            // Verify only the user's own resolved complaints
             if (complaint.status === 'resolved') {
                 return [
                     { label: '✓ Accept Resolution', status: 'verified', style: 'approve' },
@@ -65,12 +49,12 @@ const getActions = (userRole, complaint) => {
 // ─── Status meta ──────────────────────────────────────────────────────────────
 
 const STATUS_META = {
-    pending:       { label: 'Pending',      color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-    'in-progress': { label: 'In Progress',  color: 'bg-purple-100 text-purple-700 border-purple-200' },
-    resolved:      { label: 'Resolved',     color: 'bg-green-100 text-green-700 border-green-200'    },
-    verified:      { label: 'Verified',     color: 'bg-teal-100 text-teal-700 border-teal-200'       },
-    reopened:      { label: 'Reopened',     color: 'bg-amber-100 text-amber-700 border-amber-200'    },
-    rejected:      { label: 'Rejected',     color: 'bg-red-100 text-red-700 border-red-200'          },
+    pending:       { label: 'Pending',     color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+    'in-progress': { label: 'In Progress', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+    resolved:      { label: 'Resolved',    color: 'bg-green-100 text-green-700 border-green-200'    },
+    verified:      { label: 'Verified',    color: 'bg-teal-100 text-teal-700 border-teal-200'       },
+    reopened:      { label: 'Reopened',    color: 'bg-amber-100 text-amber-700 border-amber-200'    },
+    rejected:      { label: 'Rejected',    color: 'bg-red-100 text-red-700 border-red-200'          },
 };
 
 const COMPLAINT_TYPE_COLOR = {
@@ -79,9 +63,9 @@ const COMPLAINT_TYPE_COLOR = {
     Other:    'bg-orange-50 text-orange-600 border-orange-200',
 };
 
-const api = 'http://localhost:8080';
+const api = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StatusBadge({ status }) {
     const meta = STATUS_META[status] ?? STATUS_META.pending;
@@ -100,7 +84,7 @@ const ACTION_STYLES = {
 
 function ComplaintCard({ complaint, userRole, onStatusChange }) {
     const [updating, setUpdating] = useState(false);
-    const actions = getActions(userRole, complaint);
+    const actions   = getActions(userRole, complaint);
     const typeColor = COMPLAINT_TYPE_COLOR[complaint.complaintType] ?? COMPLAINT_TYPE_COLOR.Other;
 
     const handleAction = async (newStatus) => {
@@ -143,7 +127,7 @@ function ComplaintCard({ complaint, userRole, onStatusChange }) {
                         By <span className="text-gray-600">{complaint.userName}</span>
                         &nbsp;·&nbsp;
                         <span className="capitalize">{complaint.role.replace(/([A-Z])/g, ' $1').trim()}</span>
-                        {complaint.department && <>&nbsp;·&nbsp;<span className="text-gray-500">{complaint.department}</span></>}
+                        {complaint.department  && <>&nbsp;·&nbsp;<span className="text-gray-500">{complaint.department}</span></>}
                         {complaint.roomNumber  && <>&nbsp;·&nbsp;Room {complaint.roomNumber}</>}
                         {complaint.hostelNumber && <>&nbsp;·&nbsp;Hostel {complaint.hostelNumber}</>}
                     </p>
@@ -154,21 +138,20 @@ function ComplaintCard({ complaint, userRole, onStatusChange }) {
             {/* Description */}
             <p className="text-sm text-gray-500 leading-relaxed">{complaint.description}</p>
 
-            {/* Rejection message (shown to filer when complaint was rejected) */}
+            {/* Rejection message */}
             {complaint.rejectionMessage && complaint.status === 'rejected' && (
                 <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
                     ⚠ {complaint.rejectionMessage}
                 </p>
             )}
 
-            {/* Footer: date + action buttons */}
+            {/* Footer */}
             <div className="flex items-center justify-between gap-2 flex-wrap pt-1 border-t border-gray-50">
                 <span className="text-xs text-gray-300">
                     {new Date(complaint.createdAt).toLocaleDateString('en-IN', {
                         day: '2-digit', month: 'short', year: 'numeric',
                     })}
                 </span>
-
                 {actions.length > 0 && (
                     <div className="flex gap-2 flex-wrap">
                         {actions.map((action) => (
@@ -188,8 +171,55 @@ function ComplaintCard({ complaint, userRole, onStatusChange }) {
     );
 }
 
-// Section component for Active / Resolved panels
-function ComplaintSection({ title, complaints, userRole, onStatusChange, emptyText }) {
+// ─── Collapsible dropdown section ─────────────────────────────────────────────
+
+function CollapsibleSection({ title, count, accentColor = 'text-orange-500', complaints, userRole, onStatusChange, emptyText, defaultOpen = false }) {
+    const [open, setOpen] = useState(defaultOpen);
+
+    return (
+        <div className="border border-gray-100 rounded-xl overflow-hidden">
+            {/* Header / toggle */}
+            <button
+                onClick={() => setOpen(o => !o)}
+                className="w-full flex items-center justify-between px-5 py-4 bg-gray-50 hover:bg-gray-100 transition-colors duration-150"
+            >
+                <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-gray-700">{title}</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full bg-white border ${accentColor} border-current`}>
+                        {count}
+                    </span>
+                </div>
+                <span className={`text-gray-400 text-lg transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+                    ▾
+                </span>
+            </button>
+
+            {/* Body */}
+            {open && (
+                <div className="p-4">
+                    {complaints.length === 0 ? (
+                        <p className="text-center py-8 text-gray-300 text-sm">{emptyText}</p>
+                    ) : (
+                        <div className="flex flex-col gap-3">
+                            {complaints.map((c) => (
+                                <ComplaintCard
+                                    key={c._id}
+                                    complaint={c}
+                                    userRole={userRole}
+                                    onStatusChange={onStatusChange}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Flat section (active complaints — always visible) ────────────────────────
+
+function FlatSection({ title, complaints, userRole, onStatusChange, emptyText }) {
     return (
         <div>
             <h2 className="text-base font-semibold text-gray-700 mb-4">{title}</h2>
@@ -211,16 +241,16 @@ function ComplaintSection({ title, complaints, userRole, onStatusChange, emptyTe
     );
 }
 
-// ─── Main Complaints page ─────────────────────────────────────────────────────
+// ─── Main Complaints page ──────────────────────────────────────────────────────
 
-const FILER_ROLES = new Set(['student', 'classRepresentative', 'labAssistant']);
-const POLL_INTERVAL_MS = 30_000; // 30 seconds
+const FILER_ROLES   = new Set(['student', 'classRepresentative', 'labAssistant']);
+const POLL_INTERVAL = 30_000;
 
 function Complaints() {
-    const [userRole, setUserRole]   = useState('');
-    const [active,   setActive]     = useState([]);
-    const [resolved, setResolved]   = useState([]);
-    const [loading,  setLoading]    = useState(true);
+    const [userRole,   setUserRole]   = useState('');
+    const [active,     setActive]     = useState([]);
+    const [resolved,   setResolved]   = useState([]);
+    const [loading,    setLoading]    = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
     const [form, setForm] = useState({
@@ -228,13 +258,13 @@ function Complaints() {
         hostelNumber: '', complaintType: '', department: '',
     });
 
-    // ── Fetch complaints ──────────────────────────────────────────
+    // ── Fetch ──────────────────────────────────────────────────────
 
     const fetchComplaints = useCallback(async (quiet = false) => {
         if (!quiet) setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res  = await fetch(`${api}/api/complaint`, {
+            const res   = await fetch(`${api}/api/complaint`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
@@ -253,32 +283,27 @@ function Complaints() {
         const role = localStorage.getItem('role') || 'student';
         setUserRole(role);
         fetchComplaints();
-
-        // Auto-poll so timing-based state changes (1-min reject window, etc.) surface in UI
-        const interval = setInterval(() => fetchComplaints(true), POLL_INTERVAL_MS);
+        const interval = setInterval(() => fetchComplaints(true), POLL_INTERVAL);
         return () => clearInterval(interval);
     }, [fetchComplaints]);
 
-    // ── Optimistic card update ────────────────────────────────────
+    // ── Optimistic update ─────────────────────────────────────────
 
     const handleStatusChange = useCallback((id, updatedComplaint) => {
         const RESOLVED_STATUSES = new Set(['resolved', 'verified']);
         const isNowResolved = RESOLVED_STATUSES.has(updatedComplaint.status);
-
-        // Remove from both lists, then re-insert in the right one
-        setActive((prev)   => prev.filter(c => c._id !== id));
-        setResolved((prev) => prev.filter(c => c._id !== id));
-
+        setActive(prev   => prev.filter(c => c._id !== id));
+        setResolved(prev => prev.filter(c => c._id !== id));
         if (isNowResolved) {
-            setResolved((prev) => [updatedComplaint, ...prev]);
+            setResolved(prev => [updatedComplaint, ...prev]);
         } else {
-            setActive((prev) => [updatedComplaint, ...prev]);
+            setActive(prev => [updatedComplaint, ...prev]);
         }
     }, []);
 
     // ── Form ──────────────────────────────────────────────────────
 
-    const handleChange  = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -297,7 +322,7 @@ function Complaints() {
         setSubmitting(true);
         try {
             const token = localStorage.getItem('token');
-            const res  = await fetch(`${api}/api/complaint`, {
+            const res   = await fetch(`${api}/api/complaint`, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body:    JSON.stringify(payload),
@@ -317,10 +342,24 @@ function Complaints() {
         }
     };
 
+    // ── Derived lists for dropdowns ───────────────────────────────
+
+    // "Approved" for teacher = complaints they approved (now in-progress)
+    const approvedByTeacher = active.filter(c => c.status === 'in-progress');
+
+    // Truly active (needs action) for teacher = pending / reopened / rejected
+    const pendingForTeacher = active.filter(c => ['pending', 'reopened', 'rejected'].includes(c.status));
+
+    // For view-only roles: "approved" = in-progress + resolved + verified (all forwarded complaints)
+    const approvedForViewOnly = [
+        ...active.filter(c => c.status === 'in-progress'),
+        ...resolved,
+    ];
+
     // ─────────────────────────────────────────────────────────────
 
     return (
-        <div className="max-w-3xl mx-auto space-y-10">
+        <div className="max-w-3xl mx-auto space-y-8">
 
             {/* Page header */}
             <div className="flex items-center justify-between">
@@ -346,14 +385,12 @@ function Complaints() {
 
                         {userRole === 'labAssistant' ? (
                             <>
-                                {/* Fixed Academic type */}
                                 <div>
                                     <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Complaint Type</label>
                                     <div className="mt-1 px-3 py-2 text-sm border border-indigo-200 rounded-lg bg-indigo-50 text-indigo-600 font-medium">
                                         Academic
                                     </div>
                                 </div>
-                                {/* Department */}
                                 <div>
                                     <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Department Name *</label>
                                     <input
@@ -366,7 +403,6 @@ function Complaints() {
                             </>
                         ) : (
                             <>
-                                {/* Type selector */}
                                 <div>
                                     <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Complaint Type *</label>
                                     <select
@@ -380,7 +416,6 @@ function Complaints() {
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
-                                {/* Room & Hostel */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -408,7 +443,6 @@ function Complaints() {
                             </>
                         )}
 
-                        {/* Subject */}
                         <div>
                             <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Subject *</label>
                             <input
@@ -419,7 +453,6 @@ function Complaints() {
                             />
                         </div>
 
-                        {/* Description */}
                         <div>
                             <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Description *</label>
                             <textarea
@@ -440,30 +473,118 @@ function Complaints() {
                 </div>
             )}
 
-            {/* ── Active Complaints ── */}
+            {/* ── Loading ── */}
             {loading ? (
                 <div className="text-center py-12 text-gray-300 text-sm">Loading…</div>
             ) : (
-                <>
-                    <ComplaintSection
-                        title="Active Complaints"
-                        complaints={active}
-                        userRole={userRole}
-                        onStatusChange={handleStatusChange}
-                        emptyText="No active complaints."
-                    />
+                <div className="space-y-6">
 
-                    {/* ── Resolved Complaints ── */}
-                    <div className="border-t border-gray-100 pt-6">
-                        <ComplaintSection
-                            title="Resolved Complaints"
-                            complaints={resolved}
-                            userRole={userRole}
-                            onStatusChange={handleStatusChange}
-                            emptyText="No resolved complaints yet."
-                        />
-                    </div>
-                </>
+                    {/* ── TEACHER VIEW ── */}
+                    {userRole === 'teacher' && (
+                        <>
+                            <FlatSection
+                                title="Complaints Awaiting Your Decision"
+                                complaints={pendingForTeacher}
+                                userRole={userRole}
+                                onStatusChange={handleStatusChange}
+                                emptyText="No complaints pending your review."
+                            />
+                            <CollapsibleSection
+                                title="Approved by You (In-Progress)"
+                                count={approvedByTeacher.length}
+                                accentColor="text-purple-500"
+                                complaints={approvedByTeacher}
+                                userRole={userRole}
+                                onStatusChange={handleStatusChange}
+                                emptyText="You haven't approved any complaints yet."
+                            />
+                            <CollapsibleSection
+                                title="Resolved Complaints"
+                                count={resolved.length}
+                                accentColor="text-green-500"
+                                complaints={resolved}
+                                userRole={userRole}
+                                onStatusChange={handleStatusChange}
+                                emptyText="No resolved complaints yet."
+                            />
+                        </>
+                    )}
+
+                    {/* ── TECHNICIAN VIEW ── */}
+                    {userRole === 'technician' && (
+                        <>
+                            <FlatSection
+                                title="Active Complaints"
+                                complaints={active}
+                                userRole={userRole}
+                                onStatusChange={handleStatusChange}
+                                emptyText="No active complaints assigned."
+                            />
+                            <CollapsibleSection
+                                title="Resolved Complaints"
+                                count={resolved.length}
+                                accentColor="text-green-500"
+                                complaints={resolved}
+                                userRole={userRole}
+                                onStatusChange={handleStatusChange}
+                                emptyText="No resolved complaints yet."
+                            />
+                        </>
+                    )}
+
+                    {/* ── FILER ROLES (student / CR / labAssistant) ── */}
+                    {FILER_ROLES.has(userRole) && (
+                        <>
+                            <FlatSection
+                                title="My Active Complaints"
+                                complaints={active}
+                                userRole={userRole}
+                                onStatusChange={handleStatusChange}
+                                emptyText="No active complaints."
+                            />
+                            <CollapsibleSection
+                                title="Resolved / Verified Complaints"
+                                count={resolved.length}
+                                accentColor="text-green-500"
+                                complaints={resolved}
+                                userRole={userRole}
+                                onStatusChange={handleStatusChange}
+                                emptyText="No resolved complaints yet."
+                            />
+                        </>
+                    )}
+
+                    {/* ── VIEW-ONLY ROLES (supervisor / warden / chiefWarden / director / admin) ── */}
+                    {VIEW_ONLY_ROLES.has(userRole) && (
+                        <>
+                            <FlatSection
+                                title="Pending Complaints"
+                                complaints={active.filter(c => ['pending', 'reopened', 'rejected'].includes(c.status))}
+                                userRole={userRole}
+                                onStatusChange={handleStatusChange}
+                                emptyText="No pending complaints."
+                            />
+                            <CollapsibleSection
+                                title="Approved & In-Progress"
+                                count={active.filter(c => c.status === 'in-progress').length}
+                                accentColor="text-purple-500"
+                                complaints={active.filter(c => c.status === 'in-progress')}
+                                userRole={userRole}
+                                onStatusChange={handleStatusChange}
+                                emptyText="No complaints in progress."
+                            />
+                            <CollapsibleSection
+                                title="Resolved / Verified Complaints"
+                                count={resolved.length}
+                                accentColor="text-green-500"
+                                complaints={resolved}
+                                userRole={userRole}
+                                onStatusChange={handleStatusChange}
+                                emptyText="No resolved complaints yet."
+                            />
+                        </>
+                    )}
+                </div>
             )}
         </div>
     );
