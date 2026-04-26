@@ -220,6 +220,7 @@ const updateComplaintStatus = async (req, res) => {
         }
 
         // TECHNICIAN: Mark resolved
+        else if (role === 'technician' && status === 'resolved') {
             // Filer can see and verify it via userId filter in getComplaints
             // No need to add filer's role to visibleToRoles
             complaint.status     = 'resolved';
