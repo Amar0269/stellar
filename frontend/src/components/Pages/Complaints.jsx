@@ -89,8 +89,11 @@ const TYPE_COLOR = {
 
 const ACTION_STYLES = {
     approve: 'bg-green-500 hover:bg-green-600 text-white',
-    reject:  'bg-red-500 hover:bg-red-600 text-white',
+    reject:  'bg-red-100 hover:bg-red-200 text-red-600 border border-red-200',
 };
+
+// Clean action labels (remove tick/cross symbols from button text)
+const cleanLabel = (label) => label.replace(/^[✓✗]\s*/, '');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SUB-COMPONENTS
@@ -135,20 +138,20 @@ function ComplaintCard({ complaint, userRole, onStatusChange }) {
     };
 
     return (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow duration-150">
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col gap-3 hover:border-orange-200 hover:shadow-sm transition-all duration-200">
             {/* Header */}
             <div className="flex items-start justify-between gap-2 flex-wrap">
-                <div>
-                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        <p className="font-semibold text-gray-800 text-sm">{complaint.subject}</p>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <p className="font-bold text-gray-800 text-sm leading-snug">{complaint.subject}</p>
                         {complaint.complaintType && (
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded border ${typeColor}`}>
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${typeColor}`}>
                                 {complaint.complaintType}
                             </span>
                         )}
                     </div>
                     <p className="text-xs text-gray-400">
-                        By <span className="text-gray-600">{complaint.userName}</span>
+                        By <span className="text-gray-600 font-medium">{complaint.userName}</span>
                         &nbsp;·&nbsp;
                         <span className="capitalize">{complaint.role.replace(/([A-Z])/g, ' $1').trim()}</span>
                         {complaint.department  && <>&nbsp;·&nbsp;<span className="text-gray-500">{complaint.department}</span></>}
@@ -160,16 +163,16 @@ function ComplaintCard({ complaint, userRole, onStatusChange }) {
             </div>
 
             {/* Description */}
-            <p className="text-sm text-gray-500 leading-relaxed">{complaint.description}</p>
+            <p className="text-sm text-gray-500 leading-relaxed bg-gray-50 rounded-xl px-3 py-2.5">{complaint.description}</p>
 
             {/* Rejection message */}
             {complaint.rejectionMessage && complaint.status === 'rejected' && (
-                <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                    ⚠ {complaint.rejectionMessage}
+                <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+                    {complaint.rejectionMessage}
                 </p>
             )}
 
-            {/* Resolved waiting for verification notice */}
+            {/* Resolved waiting notice */}
             {complaint.status === 'resolved' && complaint.userId !== currentUserId && FILER_ROLES.has(userRole) && (
                 <p className="text-xs text-gray-400 italic">
                     Waiting for the complaint filer to verify resolution.
@@ -177,7 +180,7 @@ function ComplaintCard({ complaint, userRole, onStatusChange }) {
             )}
 
             {/* Footer */}
-            <div className="flex items-center justify-between gap-2 flex-wrap pt-1 border-t border-gray-50">
+            <div className="flex items-center justify-between gap-2 flex-wrap pt-2 border-t border-gray-100">
                 <span className="text-xs text-gray-300">
                     {new Date(complaint.createdAt).toLocaleDateString('en-IN', {
                         day: '2-digit', month: 'short', year: 'numeric',
@@ -190,9 +193,9 @@ function ComplaintCard({ complaint, userRole, onStatusChange }) {
                                 key={action.status}
                                 disabled={updating}
                                 onClick={() => handleAction(action.status)}
-                                className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors duration-150 disabled:opacity-50 ${ACTION_STYLES[action.style]}`}
+                                className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors duration-150 disabled:opacity-50 ${ACTION_STYLES[action.style]}`}
                             >
-                                {updating ? '…' : action.label}
+                                {updating ? '…' : cleanLabel(action.label)}
                             </button>
                         ))}
                     </div>
@@ -364,18 +367,18 @@ function Complaints() {
         <div className="max-w-3xl mx-auto space-y-8">
 
             {/* Page header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-end justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Complaints</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Complaints</h1>
                     <p className="text-sm text-gray-400 mt-1">
                         Submit and track complaints through the institutional hierarchy.
                     </p>
                 </div>
                 <button
                     onClick={() => fetchComplaints()}
-                    className="text-xs text-orange-500 hover:text-orange-600 font-medium"
+                    className="text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors pb-1"
                 >
-                    ↻ Refresh
+                    Refresh
                 </button>
             </div>
 
